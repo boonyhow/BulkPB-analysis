@@ -1,6 +1,7 @@
 # Bulk & PseudoBulk RNA-seq Analysis Pipeline
 
-This repository contains a modular pipeline for downloading, preprocessing, and analyzing transcriptomic data from bulk and pseudo-bulk RNA-seq sources.
+This repository contains the full set of code used to analyze transcriptomic differences between matched bulk RNA-seq and pseudo-bulk (PB) RNA-seq data. The pipeline is modular and flexible — while it is designed for comprehensive end-to-end analysis, users are encouraged to extract and adapt individual components for their own scientific workflows.
+
 
 ---
 
@@ -35,6 +36,19 @@ This script executes all Python scripts under `code_modules/` in the correct ord
 - Downloads datasets and GENCODE annotations
 - Preprocesses individual datasets according to current standards
 
+The following folder structure will be automatically generated under the `data/` directory:
+
+```
+data/
+├── GSE176078/
+│   ├── raw_tars/                 # Raw compressed files downloaded
+│   ├── extracted/                # Extracted contents from raw files
+│   └── data_for_study/
+│       ├── bulk_rna_seq/        # Cleaned, averaged bulk expression matrices
+│       ├── single_cell/         # Combined scRNA-seq matrix, features, barcodes
+│       └── sample_subtype.csv   # Sample-subtype mapping
+```
+
 ---
 
 ### **Step 2: Data Harmonization**
@@ -47,11 +61,15 @@ Rscript 2_data_preprocessing.r [config_file]
 
 Current default config file is 2_config.yaml file, where the `exp_id` is a parameter set to the experiments downloaded earlier. Ensure that the necessary changes are made in the config file, and environment has been activated prior to running.
 
+Output of this step is saved into: `data/GSEXXXXX/data_for_study/intermediate_data/`
+
+This folder stores filtered, harmonized, and normalized expression matrices and metadata used in downstream analysis.
+
 ---
 
 ### **Step 3: Main Analysis Script**
 
-This script runs the main analysis and visualization modules.
+This script runs the main analysis and visualization modules. All plots generated will be stored under the `plots` folder
 
 You can either:
 
@@ -92,21 +110,23 @@ Once added, remember to modify `1_data_modules.sh` to include the new script.
 ## Project Structure
 
 ```
-├── 0_env_setup.sh                 # Conda + R package setup
+├── 0_env_setup.sh                # Conda + R package setup
 ├── 1_data_modules.sh             # Python data download and preprocessing
 ├── 2_data_preprocessing.r        # R-based data loading and integration
 ├── 3_main_file.r                 # Full analysis pipeline
-├── code_modules/                 # All data-specific processing code
+├── code_modules/                 # All dataset-specific processing code
 ├── env_config_files/             # environment.yml and R package CSV
 ├── 2_config.yaml                 # Custom config file for experiments
+├── data/                         # Automatically generated data directory
+├── plots/                        # Automatically generated results directory
 ```
 
 ---
 
 ## Requirements
 
-- Conda (≥ v4.10)
-- R (≥ 4.2.0; managed via Conda)
+- Conda (24.11)
+- R (≥ 4.4.3; managed via Conda)
 - Internet access to download packages and datasets
 
 ---
