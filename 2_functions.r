@@ -273,6 +273,13 @@ run_all_pca <- function(data_obj, subtype_df = NULL) {
   return(pca_result)
 }
 
+
+
+#  ============================
+#  =         CODES FOR        =
+#  =        KDE ANALYSIS      =
+#  ============================
+
 run_all_kde <- function(data_obj, use_all_samples = TRUE) {
   flog.info("Running KDE for all layers dynamically...")
 
@@ -329,6 +336,11 @@ run_all_kde <- function(data_obj, use_all_samples = TRUE) {
 }
 
 
+
+#  ============================
+#  =         CODES FOR        =
+#  =        COR ANALYSIS      =
+#  ============================
 
 run_all_correlation <- function(data_obj, samplewise_correlation = TRUE) {
   flog.info("Running Pearson Correlations for all layers dynamically...")
@@ -449,37 +461,25 @@ make_metadata <- function(counts, subtypes , subtype_df) {
 }
 
 # Generate full expression matrix
-get_combined_counts <- function(data_list, subtype = NULL, correction = NULL) {
+get_combined_counts <- function(data_list) {
 
   rename_cols <- function(mat, suffix) {
     colnames(mat) <- paste0(colnames(mat), suffix)
     mat
   }
     # Generalised function to get renamed count matrices
-  get_counts <- function(data_list, modality, subtype = NULL,  correction = NULL) {
-    if (!is.null(subtype)) {
-       path <- data_list[[subtype]][[modality]]
-    } else {
-      path <- data_list[[modality]]
-    }
+  get_counts <- function(data_list, modality) {
    
-    if (!is.null(correction)) {
-      if (correction == 'normalised') {
-        path <- path$normalised
-        suffix <- paste0("_", modality, "_Normalised")
-      } else {
-        path <- path$batch_corrected[[correction]]
-        suffix <- paste0("_", modality, "_", correction)
-      }
-    } else {
-      path <- path$preprocessed
-      suffix <- paste0("_", modality, "_Original")
-    }
+    path <- data_list[[modality]]
+  
+    path <- path$preprocessed
+    suffix <- paste0("_", modality, "_Original")
+  
     rename_cols(path, suffix)
   }
 
-  bulk <- get_counts(data_list,  "Bulk", subtype, correction)
-  pseudo <- get_counts(data_list,  "PseudoBulk", subtype, correction)
+  bulk <- get_counts(data_list,  "Bulk")
+  pseudo <- get_counts(data_list,  "PseudoBulk")
   round(cbind(bulk, pseudo))
 }
 
@@ -515,77 +515,6 @@ run_deseq2_de_pipeline <- function(counts, subtype_df,subtype = NULL,  metadata_
     )
 
   return(res)
-}
-
-
-run_limma_voom_de_pipeline <- function(counts, subtype_df, subtype = NULL, metadata_column = "DataType", normalised_data = F) {
-  meta <- make_metadata(counts, subtype, subtype_df)
-
-  # Build design matrix
-  group <- factor(meta[[metadata_column]])
-  design <- model.matrix(~ group)
-  if (!normalised_data) {
-    # Raw counts: use voom
-    dge <- DGEList(counts = counts)
-    dge <- calcNormFactors(dge)
-    v <- voom(dge, design)
-    fit <- lmFit(v, design)
-  } else {
-    # counts <- limma::normalizeQuantiles(counts)
-    # keep_genes <- rowSums(counts > 1) >= 2
-    # counts <- counts[keep_genes, ]
-    # message(glue("Keeping {sum(keep_genes)} of {length(keep_genes)} genes after expression filter"))
-
-    # Normalised data: use directly in limma
-    fit <- lmFit(counts, design)
-  }
-  fit2 <- eBayes(fit)
-
-  # Extract DE results
-  de <- topTable(fit2, coef = "groupPseudoBulk", number = Inf) %>% ### groupPseudoBulk is the contrast here
-    mutate(
-      logFC = logFC,
-      negLogP = -log10(P.Value),
-      sig = ifelse(adj.P.Val < 0.05 & abs(logFC) > 1, "Significant", "Not Significant")
-    )
-
-  return(de)
-}
-
-
-run_edger_de_pipeline <- function(counts,  subtype_df, subtype =NULL, metadata_column = "DataType") {
-  # Build metadata
-  meta <- make_metadata(counts, subtype, subtype_df)
-
-  # Extract grouping factor dynamically
-  group <- factor(meta[[metadata_column]])
-  meta[[metadata_column]] <- group
-
-  # Create DGEList
-  dge <- DGEList(counts = counts, group = group)
-  dge <- calcNormFactors(dge)
-
-  # Build dynamic design matrix
-  design <- model.matrix(~ group)
-
-  # Estimate dispersion and fit model
-  dge <- estimateDisp(dge, design)
- 
-  # Fit quasi-likelihood model
-  fit <- glmQLFit(dge, design)
-
-  # Run QLF test (second coefficient = group2 vs group1)
-  qlf <- glmQLFTest(fit, coef = 2)
-
-  # Extract results
-  de <- topTags(qlf, n = Inf)$table %>%
-    dplyr::mutate(
-      logFC = logFC,
-      negLogP = -log10(PValue),
-      sig = ifelse(FDR < 0.05 & abs(logFC) > 1, "Significant", "Not Significant")
-    )
-
-  return(de)
 }
 
 
@@ -677,49 +606,6 @@ evaluate_gene_overlap <- function(de_genes, spca_genes) {
 
 
 
-jaccard_of_genes <- function(set_a, set_b) {
-    intersection <- intersect(set_a, set_b)
-    union_set <- union(set_a, set_b)
-    data.frame(
-      Gene_Set_A = length(set_a),
-      Gene_Set_B = length(set_b),
-      Overlap = length(intersection),
-      Jaccard = length(intersection) / length(union_set)
-    )
-  }
-
-
-compare_de_jaccard <- function(res, by_direction = NULL) {
-  
-  # Extract significant genes by direction
-  get_signif_genes <- function(df) {
-    df <- subset(df, sig == "Significant")
-    if (!is.null(by_direction)) {
-      if (by_direction == "upregulated") {
-        df <- df[df$logFC > 0, ]
-      } else if (by_direction == "downregulated") {
-        df <- df[df$logFC < 0, ]
-      } else {
-        stop("by_direction must be NULL, 'upregulated', or 'downregulated'")
-      }
-    }
-    rownames(df)
-  }
-
-  genes_deseq2 <- get_signif_genes(res$de$deseq2_res)
-  genes_limma  <- get_signif_genes(res$de$limma_res)
-  genes_edger  <- get_signif_genes(res$de$edger_res)
-
-  jaccard_df <- bind_rows(
-    jaccard_of_genes(genes_deseq2, genes_limma) %>% mutate(Pair = "DESeq2 vs Limma"),
-    jaccard_of_genes(genes_deseq2, genes_edger) %>% mutate(Pair = "DESeq2 vs EdgeR"),
-    jaccard_of_genes(genes_limma, genes_edger)  %>% mutate(Pair = "Limma vs EdgeR")
-  )
-
-  return(jaccard_df[, c("Pair", "Gene_Set_A", "Gene_Set_B", "Overlap", "Jaccard")])
-}
-
-
 get_intersect_significant_genes <- function(de_result, sig_label = "Significant", direction = NULL, logfc_col = "logFC") {
   if (is.null(de_result)) return(character(0))
   filtered <- subset(de_result, sig == sig_label)
@@ -738,33 +624,17 @@ get_intersect_significant_genes <- function(de_result, sig_label = "Significant"
 }
 
 
-run_de_pipelines <- function(data_obj, data_subtype_df, correction = NULL, n_cores = 4, run_go = T) {
-  # Setup future plan
-  plan(multicore, workers = n_cores)  # Use multisession on Windows
-  normalised_methods <- c('ComBatSeq_normalised', 'RUVs_normalised', 'RUVg_normalised', 'ComBat', 'limma')
+run_de_pipelines <- function(data_obj, data_subtype_df, run_go = T) {
   # Step 1: Get combined counts
-  counts <- get_combined_counts(data_obj, correction = correction)
+  counts <- get_combined_counts(data_obj)
 
-
- if (!is.null(correction) && correction %in% normalised_methods)  {
-    de_results <- list(
-      edger_res  = NULL,
-      limma_res  = run_limma_voom_de_pipeline(counts, data_subtype_df, normalised_data = T),
-      deseq2_res = NULL
-    )
-  } else {
     # Step 2: Run DE pipelines (sequential)
-    de_results <- list(
-      edger_res  = run_edger_de_pipeline(counts, data_subtype_df),
-      limma_res  = run_limma_voom_de_pipeline(counts, data_subtype_df),
-      deseq2_res = run_deseq2_de_pipeline(counts, data_subtype_df)
-    )
-  }
+  de_results <- list(
+    deseq2_res = run_deseq2_de_pipeline(counts, data_subtype_df)
+  )
 
   # Step 2b: Volcano plots
   volcano_plots <- list(
-    edger_res  = plot_volcano(de_results$edger_res,  logfc_col = 'logFC', padj_col = 'FDR'),
-    limma_res  = plot_volcano(de_results$limma_res,  logfc_col = 'logFC', padj_col = 'adj.P.Val'),
     deseq2_res = plot_volcano(de_results$deseq2_res, logfc_col = 'log2FoldChange', padj_col = 'padj')
   )
 
@@ -1752,69 +1622,4 @@ plot_correlation_boxplot <- function(correlation_data, plt_title = '', save_path
   }
 
   return(correlation_plot)
-}
-
-
-plot_correlation_heatmap_ggplot <- function(corr_matrix, sample_metadata = NULL, title = "Sample Correlation Heatmap") {
-
-  # Step 1: Prepare metadata
-  sample_names <- colnames(corr_matrix)
-  meta <- data.frame(
-    Sample = sample_names,
-    Type = ifelse(grepl("PseudoBulk$", sample_names), "PseudoBulk", "Bulk"),
-    BaseName = sub("(_Bulk|_PseudoBulk)$", "", sample_names),
-    stringsAsFactors = FALSE
-  )
-
-  if (!is.null(sample_metadata)) {
-    meta <- left_join(meta, sample_metadata, by = c("BaseName" = "Sample"))
-  }
-
-  meta$Group <- paste0(meta$Type, " [", ifelse(is.null(meta$Subtype), "Unknown", meta$Subtype), "]")
-
-  # Step 2: Reorder by group + hclust
-  group_order <- meta %>%
-    group_by(Group) %>%
-    summarise(Sample = Sample[1]) %>%
-    pull(Sample)
-
-  hc <- hclust(as.dist(1 - corr_matrix))
-  ordered_samples <- hc$labels[hc$order]
-
-  # Merge cluster order with group label info
-  meta <- meta %>% mutate(Sample = factor(Sample, levels = ordered_samples))
-  meta <- meta[order(meta$Sample), ]
-
-  ordered_labels <- meta$Group
-  names(ordered_labels) <- meta$Sample
-
-  # Step 3: Prepare melted df
-  rownames(corr_matrix) <- colnames(corr_matrix) <- names(ordered_labels)
-  corr_df <- melt(corr_matrix)
-  colnames(corr_df) <- c("Var1", "Var2", "Correlation")
-
-  corr_df$Var1 <- factor(corr_df$Var1, levels = names(ordered_labels))
-  corr_df$Var2 <- factor(corr_df$Var2, levels = names(ordered_labels))
-
-  # Step 4: Plot heatmap with blank axis labels and group guides
-  ggplot(corr_df, aes(x = Var2, y = Var1, fill = Correlation)) +
-    geom_tile(color = "white") +
-    scale_fill_gradient2(low = "blue", high = "red", mid = "white", midpoint = 0.85, limit = c(0.7, 1)) +
-    theme_classic(base_size = 14) +
-    theme(
-      axis.text = element_blank(),
-      axis.ticks = element_blank(),
-      axis.title = element_blank(),
-      panel.grid = element_blank(),
-      plot.title = element_text(hjust = 0.5, face = "bold")
-    ) +
-    labs(title = title, fill = "Pearson\nCorrelation") +
-    annotate("text",
-             x = sapply(split(seq_along(meta$Sample), meta$Group), function(x) mean(x)),
-             y = rep(-1, length(unique(meta$Group))),
-             label = unique(meta$Group),
-             angle = 45,
-             hjust = 0,
-             size = 5
-    )
 }
