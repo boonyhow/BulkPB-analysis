@@ -170,5 +170,5 @@ main <- function(config_path = "configs/1_config.yaml") {
 
 # === Entry Point for CLI ===
 args <- commandArgs(trailingOnly = TRUE)
-config_path <- if (length(args) >= 1) args[1] else "1_config.yaml"
+config_path <- if (length(args) >= 1) args[1] else "2_config.yaml"
 main(config_path)

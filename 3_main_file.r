@@ -1,9 +1,9 @@
-source('2_functions.r')
+source('code_modules/3_functions.r')
 # === Check if precomputed objects exist ===
 need_to_save_objects <- TRUE
-if (file.exists("2_full_analysis_objects.rds")) {
-  message("Found existing 2_full_analysis_objects.rds. Loading into environment...")
-  list2env(readRDS("2_full_analysis_objects.rds"), .GlobalEnv)
+if (file.exists("3_full_analysis_objects.rds")) {
+  message("Found existing 3_full_analysis_objects.rds. Loading into environment...")
+  list2env(readRDS("3_full_analysis_objects.rds"), .GlobalEnv)
   need_to_save_objects <- FALSE
 }
 
@@ -12,15 +12,15 @@ if (file.exists("2_full_analysis_objects.rds")) {
 #  =          data            =
 #  ============================
 ## GSE176078
-d_176078 <- readRDS('data/GSE176078/data_for_study/intermediate_data/1_datapreprocessing_intersect_0-2.rds')
+d_176078 <- readRDS('data/GSE176078/data_for_study/intermediate_data/2_datapreprocessing_intersect_0-2.rds')
 subtype_d_176078 <- read.csv('data/GSE176078/data_for_study/sample_subtype.csv')
 
 ## GSE217517
-d_217517 <- readRDS('data/GSE217517/data_for_study/intermediate_data/1_datapreprocessing_intersect_0-2.rds')
+d_217517 <- readRDS('data/GSE217517/data_for_study/intermediate_data/2_datapreprocessing_intersect_0-2.rds')
 subtype_d_217517 <- read.csv('data/GSE217517/data_for_study/sample_subtype.csv')
 
 ## GSE226163
-d_226163 <- readRDS('data/GSE226163/data_for_study/intermediate_data/1_datapreprocessing_intersect_0-2.rds')
+d_226163 <- readRDS('data/GSE226163/data_for_study/intermediate_data/2_datapreprocessing_intersect_0-2.rds')
 subtype_d_226163 <- read.csv('data/GSE226163/data_for_study/sample_subtype.csv')
 
 
@@ -276,6 +276,6 @@ all_objects <- list(
 )
 
 if (need_to_save_objects) {
-  saveRDS(all_objects, file = "2_full_analysis_objects.rds")
-  message("Saved 2_full_analysis_objects.rds")
+  saveRDS(all_objects, file = "3_full_analysis_objects.rds")
+  message("Saved 3_full_analysis_objects.rds")
 }

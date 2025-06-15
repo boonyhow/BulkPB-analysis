@@ -1,11 +1,8 @@
-exp_id: GSE217517
+exp_id: GSE217517 
 preprocessing:
   ### Union or intersect accepted
   mode: intersect            
   ### Minimum 0, maximum 1. Ratio of samples required for gene to be non-zero
   non_zeros_required: 0.2    
-  ### Split by subtype means that we are splitting by the sample_subtype.csv of the project
-  ### NOT RECOMMENDED FOR GSE217517
-  split_by_subtypes: false
 ### File path to be used for saving. Remember to have .rds as file extension
-save_file_path: 1_datapreprocessing_intersect_0-2.rds
+save_file_path: 2_datapreprocessing_intersect_0-2.rds
