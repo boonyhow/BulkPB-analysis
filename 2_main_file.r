@@ -1,6 +1,11 @@
 source('2_functions.r')
-# list2env(readRDS("2_full_analysis_objects.rds"), .GlobalEnv)
-
+# === Check if precomputed objects exist ===
+need_to_save_objects <- TRUE
+if (file.exists("2_full_analysis_objects.rds")) {
+  message("Found existing 2_full_analysis_objects.rds. Loading into environment...")
+  list2env(readRDS("2_full_analysis_objects.rds"), .GlobalEnv)
+  need_to_save_objects <- FALSE
+}
 
 #  ============================
 #  =       Loading all        =
@@ -166,6 +171,34 @@ save_named_plot_list(
   )
 )
 
+
+
+
+#  ============================
+#  =       Supplementary      =
+#  =         materials        =
+#  ============================
+
+#### EXPLAINED VARIANCE PCA PLOT
+
+p_176078_sparse_pca_variance_explained <- plot_pca_variance_explained(d_176078_sparse_pca$normalised$pca_obj, title = 'BC')
+p_217517_sparse_pca_variance_explained <- plot_pca_variance_explained(d_217517_sparse_pca$normalised$pca_obj, title = 'OV')
+p_226163_sparse_pca_variance_explained <- plot_pca_variance_explained(d_226163_sparse_pca$normalised$pca_obj, title = 'iPSC')
+
+
+variance_explained_plots <- (
+  (p_217517_sparse_pca_variance_explained + p_176078_sparse_pca_variance_explained + p_226163_sparse_pca_variance_explained) 
+) +
+  plot_layout(guides = "collect", axis = "collect_y") +  # Align y-axis (left)
+  plot_annotation() &
+  theme(legend.position = "top")
+
+ggsave('supp_materials_variance_explained.pdf', variance_explained_plots, width = 18, height = 6)
+
+##################################
+
+
+#### iPSC ONLY PLOTS #############
 plots_226163 <- list(
   correlation_boxplot = p_corr_226163,
   kde_density = p_kde_226163,
@@ -185,83 +218,8 @@ save_named_plot_list(
     go_plot = c(25 / scale_factor, 25 / scale_factor)        # taller PCA
   )
 )
+###################################
 
-##########################
-##  INDIV EXPERIMENT PLOTS
-##########################
-
-# Define plot groups
-plots_176078 <- list(
-  correlation_boxplot = p_corr_176078,
-  kde_density = p_kde_176078,
-  sparse_pca = p_spca_176078,
-  som_portraits = p_176078_opossom,
-  go_plot = p_176078_sparse_pca_go,
-  volcano_plot = p_176078_volcano
-)
-
-plots_217517 <- list(
-  correlation_boxplot = p_corr_217517,
-  kde_density = p_kde_217517,
-  sparse_pca = p_spca_217517,
-  som_portraits = p_217517_opossom,
-  go_plot = p_217517_sparse_pca_go,
-  volcano_plot = p_217517_volcano
-)
-
-save_named_plot_list(
-  plots_176078,
-  folder_path = "plots/GSE176078",
-  width = 10, height = 10, dpi = 300,
-  format = 'pdf',
-  custom_sizes = list(
-    som_portraits = c(30, 30),  # 3× default width
-    go_plot = c(20, 10)        # taller PCA
-  )
-)
-
-save_named_plot_list(
-  plots_217517,
-  folder_path = "plots/GSE217517",
-  width = 10, height = 10, dpi = 300,
-  format = 'pdf',
-  custom_sizes = list(
-    som_portraits = c(30, 10),  # 3× default width
-    go_plot = c(20, 10)        # taller PCA
-  )
-)
-save_named_plot_list(
-  plots_226163,
-  folder_path = "plots/GSE226163",
-  width = 10, height = 10, dpi = 300,
-  format = 'pdf',
-  custom_sizes = list(
-    som_portraits = c(30, 20),  # 3× default width
-    go_plot = c(20, 10)        # taller PCA
-  )
-)
-
-
-
-#  ============================
-#  =       Supplementary      =
-#  =         materials        =
-#  ============================
-
-p_176078_sparse_pca_variance_explained <- plot_pca_variance_explained(d_176078_sparse_pca$normalised$pca_obj, title = 'BC')
-p_217517_sparse_pca_variance_explained <- plot_pca_variance_explained(d_217517_sparse_pca$normalised$pca_obj, title = 'OV')
-p_226163_sparse_pca_variance_explained <- plot_pca_variance_explained(d_226163_sparse_pca$normalised$pca_obj, title = 'iPSC')
-
-
-
-variance_explained_plots <- (
-  (p_217517_sparse_pca_variance_explained + p_176078_sparse_pca_variance_explained + p_226163_sparse_pca_variance_explained) 
-) +
-  plot_layout(guides = "collect", axis = "collect_y") +  # Align y-axis (left)
-  plot_annotation() &
-  theme(legend.position = "top")
-
-ggsave('supp_materials_variance_explained.pdf', variance_explained_plots, width = 18, height = 6)
 ## T TEST OF SPCA SEPERATION
 d_176078_sparse_pca_test <- test_spca_separation(d_176078_sparse_pca$normalised)
 d_217517_sparse_pca_test <- test_spca_separation(d_217517_sparse_pca$normalised)
@@ -271,11 +229,6 @@ d_226163_sparse_pca_test <- test_spca_separation(d_226163_sparse_pca$normalised)
 plot_dynamic_subtype_som_portraits(d_226163_opossom, save_path = 'supp_plot_opossom_226163.png',width = 25/scale_factor, height = 20/scale_factor, force_rename =  T, force_rename_suffix = "Replicate ")
 plot_dynamic_subtype_som_portraits(d_176078_opossom, save_path = 'supp_plot_opossom_176078.png', width = 25/scale_factor, height = 30/scale_factor, force_rename =  T, force_rename_suffix = "P")
 plot_som_portrait_by_pos(d_217517_opossom, save_path = 'supp_1_sample_opossom_217517.png', width = 8, height = 10, sample_pos = c(1,  8), font_size = 28)
-
-### GO PLOTS OF ORIGINAL DEGs
-go_plots <- plot_multi_experiment_go_split(de_go_results_list, top_n = 5,  de_method = 'deseq2_res', force_top_n = TRUE)
-p_de_go_bulk <- wrap_elements(full = go_plots$bulk)
-p_de_go_pseudo <- wrap_elements(full = go_plots$pseudo)
 
 
 #  ============================
@@ -318,27 +271,11 @@ all_objects <- list(
   de_go_results_list = de_go_results_list,
   
   deseq_de_comparison = deseq_de_comparison,
-  edger_de_comparison = edger_de_comparison,
-  limma_de_comparison = limma_de_comparison,
   
   sparse_pca_go_results_list = sparse_pca_go_results_list
 )
 
-saveRDS(all_objects, file = "2_full_analysis_objects.rds")
-
-
-# d_217517_only_spca_de <- sparse_pca_to_de(d_217517_sparse_pca$normalised$pca_obj)
-# d_176078_only_spca_de <- sparse_pca_to_de(d_176078_sparse_pca$normalised$pca_obj)
-# d_226163_only_spca_de <- sparse_pca_to_de(d_226163_sparse_pca$normalised$pca_obj)
-
-# d_226163_only_sparse_pca_go <-  run_go_by_direction(d_226163_only_spca_de, logFC_threshold = 0)
-# d_217517_only_sparse_pca_go <-  run_go_by_direction(d_217517_only_spca_de, logFC_threshold = 0)
-# d_176078_only_sparse_pca_go <-  run_go_by_direction(d_176078_only_spca_de, logFC_threshold = 0)
-
-# only_sparse_pca_go_results_list <- list(
-#   GSE217517 = d_217517_only_sparse_pca_go,
-#   GSE176078 = d_176078_only_sparse_pca_go,
-#   GSE226163 = d_226163_only_sparse_pca_go
-# )
-# plot_multi_experiment_go(only_sparse_pca_go_results_list, top_n = 10, save_path = 'test8.png', de_method_param = NULL,
-#   force_top_n = TRUE)
+if (need_to_save_objects) {
+  saveRDS(all_objects, file = "2_full_analysis_objects.rds")
+  message("Saved 2_full_analysis_objects.rds")
+}

@@ -124,8 +124,8 @@ def organize_extracted_data_GSE226163(main_folder):
         subtype_records.append({"Sample": sample, "Subtype": subtype})
 
     subtype_df = pd.DataFrame(subtype_records).drop_duplicates("Sample")
-    subtype_df.to_csv(output_dir / "cell_subtype.csv", index=False)
-    print("✅ Saved: data_for_study/cell_subtype.csv")
+    subtype_df.to_csv(output_dir / "sample_subtype.csv", index=False)
+    print("✅ Saved: data_for_study/sample_subtype.csv")
 
 
 if __name__ == "__main__":

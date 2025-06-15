@@ -212,6 +212,15 @@ def organize_extracted_data_GSE217517(main_folder):
         f.write("\n==== Dropped Samples Due to High Variance ====\n")
         f.write(sample_level_drops if sample_level_drops else "None\n")
     print("Saved mapping and README.")
+    
+    # === Save Sample Subtype Table ===
+    subtype_df = pd.DataFrame({
+        "Sample": sorted(samples_to_keep.keys(), key=lambda x: int(x[1:])),  # Sort as P1, P2, ...
+        "Subtype": ["HGSOC"] * len(samples_to_keep)
+    })
+    subtype_df.to_csv(output_base / "sample_subtype.csv", index=False)
+    print("Saved sample_subtype.csv.")
+
 
 if __name__ == "__main__":
     organize_extracted_data_GSE217517(

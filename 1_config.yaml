@@ -4,16 +4,8 @@ preprocessing:
   mode: intersect            
   ### Minimum 0, maximum 1. Ratio of samples required for gene to be non-zero
   non_zeros_required: 0.2    
-  ### Split by subtype means that we are splitting by the cell_subtype.csv of the project
+  ### Split by subtype means that we are splitting by the sample_subtype.csv of the project
   ### NOT RECOMMENDED FOR GSE217517
   split_by_subtypes: false
-ruv:
-  auto_tune_k: false
-  k: 2  # used only if auto_tune_k is false
-  use_housekeeping: false
-  num_control_genes: 1000
-  use_elbow_var: false
-  use_pca_var: false
-  manual_pca_dim: 1
 ### File path to be used for saving. Remember to have .rds as file extension
 save_file_path: 1_datapreprocessing_intersect_0-2.rds
