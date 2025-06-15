@@ -2,7 +2,6 @@
 
 This repository contains the full set of code used to analyze transcriptomic differences between matched bulk RNA-seq and pseudo-bulk (PB) RNA-seq data. The pipeline is modular and flexible — while it is designed for comprehensive end-to-end analysis, users are encouraged to extract and adapt individual components for their own scientific workflows.
 
-
 ---
 
 ## Getting Started
@@ -18,6 +17,7 @@ bash 0_env_setup.sh
 ```
 
 This script will:
+
 - Create a Conda environment based on `env_config_files/environment.yml`
 - Install required R packages listed in `env_config_files/r_packages_with_source.csv` using the `code_modules/2_install_r_packages.R` function
 
@@ -40,7 +40,7 @@ The following folder structure will be automatically generated under the `data/`
 
 ```
 data/
-├── GSE176078/
+├── GSEXXXXXX/
 │   ├── raw_tars/                 # Raw compressed files downloaded
 │   ├── extracted/                # Extracted contents from raw files
 │   └── data_for_study/
